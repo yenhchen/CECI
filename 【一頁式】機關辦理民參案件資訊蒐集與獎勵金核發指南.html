@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>機關辦理民參案件之資訊蒐集及獎勵金核發指南</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 與 ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- 引入 Babel 讓瀏覽器可以編譯 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <!-- React 應用程式的掛載點 -->
+    <div id="root"></div>
+
+    <!-- React 程式碼 -->
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- 自定義圖示組件 (取代 lucide-react 以確保純 HTML 完美運作) ---
+        const IconWrapper = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Clock = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconWrapper>;
+        const CalendarDays = (props) => <IconWrapper {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></IconWrapper>;
+        const Globe = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconWrapper>;
+        const FileText = (props) => <IconWrapper {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></IconWrapper>;
+        const AlertTriangle = (props) => <IconWrapper {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></IconWrapper>;
+        const CheckCircle2 = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconWrapper>;
+        const Info = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></IconWrapper>;
+        const FileCheck = (props) => <IconWrapper {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></IconWrapper>;
+        const Building = (props) => <IconWrapper {...props}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></IconWrapper>;
+        const Flag = (props) => <IconWrapper {...props}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></IconWrapper>;
+
+        // --- 主要應用程式組件 ---
+        const App = () => {
+            const Badge = ({ children, color = "blue" }) => {
+                const colorClasses = {
+                    blue: "bg-blue-100 text-blue-800 border-blue-200",
+                    red: "bg-red-100 text-red-800 border-red-200",
+                    amber: "bg-amber-100 text-amber-800 border-amber-200",
+                    emerald: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                    purple: "bg-purple-100 text-purple-800 border-purple-200",
+                    gray: "bg-gray-100 text-gray-800 border-gray-200"
+                };
+                return (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClasses[color]} ml-2`}>
+                        {children}
+                    </span>
+                );
+            };
+
+            const Card = ({ title, icon: Icon, children, stageNum }) => (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 transition-all hover:shadow-md relative">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
+                    <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                                <Icon size={24} />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                                {stageNum && <span className="text-blue-600 mr-2">階段 {stageNum}</span>}
+                                {title}
+                            </h2>
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        {children}
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
+                    <div className="max-w-5xl mx-auto">
+                        
+                        {/* Header */}
+                        <header className="mb-6 pb-6 border-b border-slate-200">
+                            <div className="flex items-start md:items-center">
+                                <Flag className="text-blue-600 mr-3 shrink-0 mt-1 md:mt-0" size={32} />
+                                <div>
+                                    <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+                                        機關辦理民參案件之資訊蒐集及獎勵金核發指南
+                                    </h1>
+                                    <p className="text-slate-500 italic mt-1.5 text-sm md:text-base">
+                                        依據「機關辦理民間參與公共建設案件資訊蒐集及獎勵金核發作業要點」
+                                    </p>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div className="space-y-8">
+                            
+                            {/* Stage 1 */}
+                            <Card title="前置作業階段" icon={Building} >
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-6">
+                                        <div className="bg-blue-50/50 rounded-lg p-4 border border-blue-100">
+                                            <h3 className="font-bold text-blue-900 flex items-center mb-3">
+                                                <Clock className="mr-2 h-5 w-5" />
+                                                資訊蒐集 (§4)
+                                                <Badge color="red">次日起 30 日內</Badge>
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mb-3">各類案件須於起算日之次日起30日內，於促參資訊網登載基本資訊。</p>
+                                            <ul className="space-y-2 text-sm">
+                                                <li className="flex items-start">
+                                                    <CheckCircle2 className="h-4 w-4 text-blue-500 mr-2 mt-0.5 shrink-0" />
+                                                    <span><strong>政府規劃：</strong>預評估結果可行，且經機關書面核准日起算。</span>
+                                                </li>
+                                                <li className="flex items-start">
+                                                    <CheckCircle2 className="h-4 w-4 text-blue-500 mr-2 mt-0.5 shrink-0" />
+                                                    <span><strong>民間自行規劃：</strong>機關核准辦理政策公告日起算。</span>
+                                                </li>
+                                                <li className="flex items-start">
+                                                    <CheckCircle2 className="h-4 w-4 text-blue-500 mr-2 mt-0.5 shrink-0" />
+                                                    <span><strong>優先訂約：</strong>機關核准與民間機構辦理優先定約之日起算。</span>
+                                                </li>
+                                                <li className="flex items-start">
+                                                    <CheckCircle2 className="h-4 w-4 text-blue-500 mr-2 mt-0.5 shrink-0" />
+                                                    <span><strong>其他法令案件：</strong>經機關核准依該法令辦理公告或公開日起算。</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <div className="bg-amber-50/50 rounded-lg p-4 border border-amber-100">
+                                            <h3 className="font-bold text-amber-900 flex items-center mb-3">
+                                                <CalendarDays className="mr-2 h-5 w-5" />
+                                                定期回報機制 (§4)
+                                            </h3>
+                                            <p className="text-sm text-slate-700">機關應登載前一季的辦理情形，期限為每年：</p>
+                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                <Badge color="amber">1月底前</Badge>
+                                                <Badge color="amber">4月底前</Badge>
+                                                <Badge color="amber">7月底前</Badge>
+                                                <Badge color="amber">10月底前</Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="bg-purple-50/50 rounded-lg p-4 border border-purple-100 h-full">
+                                            <h3 className="font-bold text-purple-900 flex items-center mb-3">
+                                                <Globe className="mr-2 h-5 w-5" />
+                                                英文資訊登載 (§5)
+                                            </h3>
+                                            <p className="text-sm text-slate-700 mb-3">若符合以下任一情形，應**同時**登載英文資訊：</p>
+                                            <ul className="space-y-3 text-sm">
+                                                <li className="flex items-start bg-white p-2 rounded border border-purple-100">
+                                                    <span className="bg-purple-200 text-purple-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2 shrink-0">1</span>
+                                                    <span>促參法第 3 條第 2 項所定之<strong>重大公共建設</strong>。</span>
+                                                </li>
+                                                <li className="flex items-start bg-white p-2 rounded border border-purple-100">
+                                                    <span className="bg-purple-200 text-purple-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2 shrink-0">2</span>
+                                                    <span>促參法第 8 條第 1 項各款興建營運<strong>涉政府預算</strong>。</span>
+                                                </li>
+                                                <li className="flex items-start bg-white p-2 rounded border border-purple-100">
+                                                    <span className="bg-purple-200 text-purple-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2 shrink-0">3</span>
+                                                    <span>適用<strong>條約或協定</strong>者。</span>
+                                                </li>
+                                                <li className="flex items-start bg-white p-2 rounded border border-purple-100">
+                                                    <span className="bg-purple-200 text-purple-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2 shrink-0">4</span>
+                                                    <span>依機關辦理促進民間參與公共建設案件前置作業費用補助作業要點，<strong>受財政部補助</strong>前置作業費用者。</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* Stage 2 */}
+                            <Card title="簽約階段 (辦理民投金額認定)" icon={FileCheck} >
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="md:col-span-1 bg-red-50/50 rounded-lg p-4 border border-red-100 flex flex-col justify-center items-center text-center">
+                                        <Clock className="h-10 w-10 text-red-500 mb-2" />
+                                        <h3 className="font-bold text-red-900 mb-1">辦理期限 (§6)</h3>
+                                        <p className="text-sm text-red-700">簽訂民參案件契約之</p>
+                                        <div className="text-xl font-black text-red-600 my-2">次日起 30 日內</div>
+                                        <p className="text-sm text-red-700">須提出民投金額認定</p>
+                                    </div>
+
+                                    <div className="md:col-span-2 space-y-4">
+                                        <div className="bg-emerald-50/50 rounded-lg p-4 border border-emerald-100">
+                                            <h3 className="font-bold text-emerald-900 flex items-center mb-2">
+                                                <FileText className="mr-2 h-5 w-5" />
+                                                應檢送資料
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                                                <div className="bg-white p-3 rounded border border-emerald-200">
+                                                    <div className="text-xs font-bold text-emerald-600 mb-1">促參案件</div>
+                                                    <ul className="text-sm space-y-1 text-slate-700 list-disc list-inside marker:text-emerald-400">
+                                                        <li>投資契約</li>
+                                                        <li>投資執行計畫書</li>
+                                                        <li>民投金額試算表等資料</li>
+                                                    </ul>
+                                                </div>
+                                                <div className="bg-white p-3 rounded border border-emerald-200">
+                                                    <div className="text-xs font-bold text-emerald-600 mb-1">其他法令案件</div>
+                                                    <ul className="text-sm space-y-1 text-slate-700 list-disc list-inside marker:text-emerald-400">
+                                                        <li>契約書</li>
+                                                        <li>可檢視其投資金額與期程之資料</li>
+                                                        <li>民投金額試算表等資料</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-100 rounded-lg p-4 flex items-start">
+                                            <AlertTriangle className="h-5 w-5 text-amber-500 mr-3 shrink-0 mt-0.5" />
+                                            <div>
+                                                <h4 className="text-sm font-bold text-gray-800">展延機制</h4>
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    若未能於期限內提出，應備具緣由函報財政部申請展延。<br/>
+                                                    <Badge color="amber">展延以 1 次為限</Badge>
+                                                    <Badge color="amber">以 15 日為上限</Badge>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* Stage 3 */}
+                            <Card title="履約階段" icon={FileText} >
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-blue-50/50 rounded-lg p-4 border border-blue-100">
+                                        <h3 className="font-bold text-blue-900 flex items-center mb-4">
+                                            <Clock className="mr-2 h-5 w-5" />
+                                            資訊蒐集登載期限 (§7)
+                                        </h3>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between bg-white p-3 rounded border border-blue-50">
+                                                <span className="text-sm font-medium text-slate-700">民投金額認定</span>
+                                                <Badge color="emerald">接獲函之次日起 10 日內</Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between bg-white p-3 rounded border border-blue-50">
+                                                <span className="text-sm font-medium text-slate-700">營運績效評定結果 (促參)</span>
+                                                <Badge color="blue">公開次日起 30 日內</Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between bg-white p-3 rounded border border-blue-50">
+                                                <span className="text-sm font-medium text-slate-700">履約爭議處理結果 (促參)</span>
+                                                <Badge color="blue">送達次日起 30 日內</Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-amber-50/50 rounded-lg p-4 border border-amber-100">
+                                        <h3 className="font-bold text-amber-900 flex items-center mb-3">
+                                            <CalendarDays className="mr-2 h-5 w-5" />
+                                            定期回報機制 (§7)
+                                        </h3>
+                                        <p className="text-sm text-slate-700 mb-4">機關應於下列期限前，登載前<strong className="text-amber-700">半年</strong>的辦理情形：</p>
+                                        <div className="flex gap-4">
+                                            <div className="flex-1 bg-white p-4 rounded-lg border border-amber-200 text-center">
+                                                <div className="text-2xl font-black text-amber-600 mb-1">1月</div>
+                                                <div className="text-xs text-amber-800 font-medium">月底前</div>
+                                            </div>
+                                            <div className="flex-1 bg-white p-4 rounded-lg border border-amber-200 text-center">
+                                                <div className="text-2xl font-black text-amber-600 mb-1">7月</div>
+                                                <div className="text-xs text-amber-800 font-medium">月底前</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* Stage 4 (No Stage Number Label) */}
+                            <Card title="機關完成資訊登載注意事項" icon={Info}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-slate-50 rounded-lg p-5 border border-slate-200">
+                                        <h3 className="font-bold text-slate-800 flex items-center mb-4">
+                                            <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
+                                            重大狀態變更 (§8)
+                                            <Badge color="red">發生之次日起 30 日內</Badge>
+                                        </h3>
+                                        <ul className="space-y-4">
+                                            <li className="bg-white p-3 rounded shadow-sm border border-slate-100">
+                                                <strong className="text-blue-700 block text-sm mb-1">基本資訊變更</strong>
+                                                <p className="text-sm text-slate-600">應於期限內修正促參資訊網上的資訊。</p>
+                                            </li>
+                                            <li className="bg-white p-3 rounded shadow-sm border border-slate-100">
+                                                <strong className="text-red-700 block text-sm mb-1">停止辦理、契約解除或終止</strong>
+                                                <p className="text-sm text-slate-600">須備具緣由函報財政部辦理停止資訊蒐集。</p>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="bg-slate-800 rounded-lg p-5 border border-slate-700 text-slate-100">
+                                        <h3 className="font-bold text-white flex items-center mb-4">
+                                            <CheckCircle2 className="mr-2 h-5 w-5 text-emerald-400" />
+                                            其他法令案件之停止填報
+                                        </h3>
+                                        <div className="space-y-3 text-sm text-slate-300">
+                                            <p>
+                                                自簽約日起算<strong className="text-white text-base mx-1 bg-slate-700 px-2 py-0.5 rounded">滿三年</strong>，機關得申請停止登載進度填報。
+                                            </p>
+                                            <div className="flex items-start mt-2 bg-slate-700/50 p-3 rounded border border-slate-600">
+                                                <Info className="h-4 w-4 text-blue-300 mr-2 mt-0.5 shrink-0" />
+                                                <p>經財政部審核通過後即可停止。</p>
+                                            </div>
+                                            <div className="flex items-start bg-slate-700/50 p-3 rounded border border-slate-600 border-l-4 border-l-amber-500">
+                                                <AlertTriangle className="h-4 w-4 text-amber-500 mr-2 mt-0.5 shrink-0" />
+                                                <p className="text-amber-100">
+                                                    <strong>注意：</strong>若案件涉有工程，則必須於<strong className="text-white mx-1 border-b border-white">全部工程完工後</strong>，始得申請停止填報。
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 渲染應用程式
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
